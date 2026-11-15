@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f766e">
+  <title>HealthConnect | Symptom Check</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #183137;
+      --muted: #587176;
+      --teal: #0f766e;
+      --teal-dark: #115e59;
+      --line: #d7e5e3;
+      --surface: #fff;
+      --page: #f2f8f7;
+      --danger: #a3312c;
+      --warning: #8a5a00;
+      --success: #176444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font: 16px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header { background: #e2f2ef; border-bottom: 1px solid var(--line); }
+    .wrap { width: min(940px, calc(100% - 32px)); margin: 0 auto; }
+    .top { padding: 34px 0 28px; }
+    .eyebrow { color: var(--teal-dark); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 6px 0 8px; font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.12; }
+    .intro { max-width: 650px; margin: 0; color: var(--muted); }
+    main { padding: 28px 0 48px; }
+    .notice {
+      border-left: 4px solid #d38b17; border-radius: 8px; background: #fff8e8;
+      color: #59420e; margin-bottom: 20px; padding: 14px 16px;
+    }
+    .notice strong { display: block; margin-bottom: 3px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; box-shadow: 0 8px 24px #18413b0b; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    h2 { margin: 0 0 6px; font-size: 1.25rem; }
+    .help { margin: 0 0 14px; color: var(--muted); font-size: .94rem; }
+    label { display: block; font-weight: 700; margin: 13px 0 6px; }
+    textarea, input {
+      width: 100%; border: 1px solid #b9cfcc; border-radius: 8px; color: var(--ink);
+      background: white; font: inherit; padding: 11px 12px;
+    }
+    textarea { min-height: 112px; resize: vertical; }
+    input:focus, textarea:focus, button:focus-visible { outline: 3px solid #66b9b0; outline-offset: 2px; }
+    button {
+      border: 0; border-radius: 8px; background: var(--teal); color: white; cursor: pointer;
+      font: inherit; font-weight: 750; margin-top: 14px; min-height: 44px; padding: 10px 16px;
+    }
+    button:hover { background: var(--teal-dark); }
+    button:disabled { cursor: wait; opacity: .65; }
+    .secondary { background: #e5f2f0; color: var(--teal-dark); }
+    .secondary:hover { background: #d5eae7; }
+    .result { margin-top: 22px; }
+    .result[hidden], .message[hidden] { display: none; }
+    .badge { display: inline-block; border-radius: 999px; font-size: .9rem; font-weight: 800; padding: 5px 11px; }
+    .badge.low { color: var(--success); background: #e1f4e9; }
+    .badge.medium { color: var(--warning); background: #fff0cc; }
+    .badge.high { color: var(--danger); background: #fde7e5; }
+    .result-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 14px; }
+    .result h3 { font-size: 1rem; margin: 12px 0 4px; }
+    ul { margin: 0; padding-left: 21px; }
+    .message { margin: 14px 0 0; color: var(--danger); font-weight: 650; }
+    .call-result { margin-top: 14px; padding: 12px; background: #f0f7f6; border-radius: 8px; overflow-wrap: anywhere; }
+    footer { color: var(--muted); font-size: .9rem; padding: 0 0 30px; }
+    @media (max-width: 650px) {
+      .grid, .result-columns { grid-template-columns: 1fr; }
+      .card { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <div class="eyebrow">HealthConnect</div>
+      <h1>How are you feeling?</h1>
+      <p class="intro">Share symptoms to see the information returned by the telehealth service, or request a doctor call.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <aside class="notice" role="note">
+      <strong>This tool does not provide a medical diagnosis.</strong>
+      Its results are general information only and cannot replace advice from a qualified healthcare professional. If you may be experiencing an emergency, contact your local emergency services now.
+    </aside>
+
+    <section class="card" aria-labelledby="symptom-heading">
+      <div class="grid">
+        <form id="diagnosis-form">
+          <h2 id="symptom-heading">Symptom check</h2>
+          <p class="help">Enter symptoms separated by commas (for example: fever, cough, sore_throat).</p>
+          <label for="symptoms">Symptoms</label>
+          <textarea id="symptoms" name="symptoms" placeholder="fever, cough" required></textarea>
+          <button id="diagnose-button" type="submit">Check symptoms</button>
+          <p id="diagnosis-message" class="message" role="alert" hidden></p>
+        </form>
+
+        <form id="call-form">
+          <h2>Request a doctor call</h2>
+          <p class="help">Send patient and doctor IDs to the consultation endpoint.</p>
+          <label for="patient-id">Patient ID</label>
+          <input id="patient-id" name="patientId" autocomplete="off" required>
+          <label for="doctor-id">Doctor ID</label>
+          <input id="doctor-id" name="doctorId" autocomplete="off" required>
+          <button class="secondary" id="call-button" type="submit">Request call</button>
+          <p id="call-message" class="message" role="alert" hidden></p>
+          <div id="call-result" class="call-result" aria-live="polite" hidden></div>
+        </form>
+      </div>
+
+      <section id="diagnosis-result" class="result" aria-live="polite" hidden>
+        <h2>Service response</h2>
+        <span id="urgency" class="badge"></span>
+        <div class="result-columns">
+          <div><h3>Possible conditions</h3><ul id="conditions"></ul></div>
+          <div><h3>Tests listed</h3><ul id="tests"></ul></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="wrap">For educational use only. Please consult a healthcare professional for medical concerns.</footer>
+
+  <script>
+    // Uses the same origin as the page. Configure your server/proxy if the API is hosted elsewhere.
+    const API_BASE = "/api/v1";
+
+    function setMessage(element, text) {
+      element.textContent = text;
+      element.hidden = !text;
+    }
+
+    function fillList(element, values, emptyText) {
+      element.replaceChildren();
+      const items = Array.isArray(values) && values.length ? values : [emptyText];
+      for (const value of items) {
+        const item = document.createElement("li");
+        item.textContent = String(value);
+        element.appendChild(item);
+      }
+    }
+
+    document.getElementById("diagnosis-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = document.getElementById("diagnose-button");
+      const message = document.getElementById("diagnosis-message");
+      const symptoms = document.getElementById("symptoms").value
+        .split(",").map((symptom) => symptom.trim()).filter(Boolean);
+      setMessage(message, "");
+      if (!symptoms.length) {
+        setMessage(message, "Enter one or more symptoms separated by commas.");
+        return;
+      }
+
+      button.disabled = true;
+      try {
+        const response = await fetch(`${API_BASE}/diagnose`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({ symptoms })
+        });
+        if (!response.ok) throw new Error(`Request failed (${response.status}).`);
+        const data = await response.json();
+        const level = String(data.urgencyLevel || "Low");
+        const badge = document.getElementById("urgency");
+        badge.textContent = `Urgency returned by service: ${level}`;
+        badge.className = `badge ${level.toLowerCase()}`;
+        fillList(document.getElementById("conditions"), data.possibleConditions, "No matching symptom found.");
+        fillList(document.getElementById("tests"), data.requiredTests, "No test information returned.");
+        document.getElementById("diagnosis-result").hidden = false;
+      } catch (error) {
+        setMessage(message, `Could not contact the diagnosis service. Check that the backend is running and accessible. ${error.message}`);
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById("call-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = document.getElementById("call-button");
+      const message = document.getElementById("call-message");
+      const result = document.getElementById("call-result");
+      setMessage(message, "");
+      result.hidden = true;
+      button.disabled = true;
+      try {
+        const response = await fetch(`${API_BASE}/consultations/call`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({
+            patientId: document.getElementById("patient-id").value.trim(),
+            doctorId: document.getElementById("doctor-id").value.trim()
+          })
+        });
+        if (!response.ok) throw new Error(`Request failed (${response.status}).`);
+        const data = await response.json();
+        result.textContent = `Status: ${data.status || "Unknown"} | Bridge ID: ${data.bridgeId || "Not provided"}`;
+        result.hidden = false;
+      } catch (error) {
+        setMessage(message, `Could not contact the consultation service. Check that the backend is running and accessible. ${error.message}`);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
